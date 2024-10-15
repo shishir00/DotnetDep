@@ -1,0 +1,65 @@
+name: Build-Test-Deploy to S3
+ 
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy (e.g., dev, prod)'
+        type: string
+        required: true
+ 
+jobs:
+  build:
+    runs-on: ubuntu-latest
+ 
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+ 
+      - name: Setup .NET Core
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '7.0.x'  # Replace with the required .NET version
+ 
+      - name: Restore dependencies
+        run: dotnet restore 'MyConsoleApp/MyConsoleApp.csproj'
+ 
+      - name: Build the application
+        run: dotnet build 'MyConsoleApp/MyConsoleApp.csproj' --configuration Release --no-restore
+ 
+      - name: Run Unit Tests
+        run: dotnet test 'MyConsoleApp/MyConsoleApp.csproj'
+ 
+      - name: Publish build artifacts
+        run: dotnet publish 'MyConsoleApp/MyConsoleApp.csproj' -c Release -o ${{ github.workspace }}/artifacts
+ 
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: ${{ github.workspace }}/artifacts  # Ensure this path is correct and contains your built project
+ 
+  deploy:
+    needs: build  # Ensures deploy runs only after build is successful
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+ 
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+          path: ./artifacts  # Ensure this path is correct
+ 
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1  # Replace with your bucket's region
+ 
+      - name: Sync files to S3
+        run: |
+          aws s3 sync ./artifacts s3://netbuckett --exclude ".git/*" --exclude ".github/*" --delete
