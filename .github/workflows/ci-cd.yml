@@ -26,6 +26,9 @@ jobs:
 
       - name: Build
         run: dotnet build 'MyConsoleApp/MyConsoleApp.csproj' --no-restore
+        
+      - name: Run Unit Tests
+        run: dotnet test 'MyConsoleApp/MyConsoleApp.csproj'
 
       - name: Publish
         run: dotnet publish 'MyConsoleApp/MyConsoleApp.csproj' -c Release -o ${{ github.workspace }}/artifacts
