@@ -52,7 +52,8 @@ jobs:
         with:
           name: build-artifacts
           path: ./artifacts  # Ensure this path is correct
- 
+      - name: output
+        run: ls
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
